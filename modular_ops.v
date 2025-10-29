@@ -34,7 +34,7 @@ module Mod_Sub(
     wire [12:0] diff;
     wire [11:0] diff_mod;
     
-    assign diff = (a >= b) ? (a - b) : (P + a - b);
+    assign diff = (a >= b) ? (a - b) : (13'd3329 + {1'b0, a} - {1'b0, b});
     assign diff_mod = diff[11:0];
     
     always @(posedge clk) begin
@@ -59,7 +59,7 @@ module Barrett_Reduce(
     reg [25:0] tq;
     reg [24:0] tq_mul_p;
     
-    // µÚÒ»ÅÄ
+    // ç¬¬ä¸€æ‹
     always @(posedge clk) begin
         if (reset) begin
             tq <= 26'd0;
@@ -70,7 +70,7 @@ module Barrett_Reduce(
         end
     end
     
-    // µÚ¶şÅÄ
+    // ç¬¬äºŒæ‹
     always @(posedge clk) begin
         if (reset) begin
             tq_mul_p <= 25'd0;
@@ -81,7 +81,7 @@ module Barrett_Reduce(
         end
     end
     
-    // µÚÈıÅÄ
+    // ç¬¬ä¸‰æ‹
     wire [24:0] Tbr2_ext;
     wire signed [25:0] r1_signed;
     wire [24:0] r1, r2, r3;
@@ -111,7 +111,7 @@ module Mod_Mul(
 );
     parameter P = 13'd3329;
     
-    // µÚÒ»¼¶£º³Ë·¨
+    // ç¬¬ä¸€çº§ï¼šä¹˜æ³•
     reg [23:0] product;
     
     always @(posedge clk) begin
@@ -121,7 +121,7 @@ module Mod_Mul(
             product <= a * b;
     end
     
-    // µÚ¶ş¼¶µ½µÚËÄ¼¶£ºBarrettÔ¼¼ò
+    // ç¬¬äºŒçº§åˆ°ç¬¬å››çº§ï¼šBarrettçº¦ç®€
     Barrett_Reduce barrett_inst (
         .clk(clk),
         .reset(reset),
