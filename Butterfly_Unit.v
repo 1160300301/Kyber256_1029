@@ -2,16 +2,16 @@ module Butterfly_Unit (
     input clk,
     input reset,
     
-    // ¿ØÖÆĞÅºÅ
+    // æ§åˆ¶ä¿¡å·
     input [1:0] operation,  // 00: NTT, 01: INTT, 10: PWM
     input valid_in,
     
-    // Êı¾İÊäÈë
+    // æ•°æ®è¾“å…¥
     input [11:0] a_in,
     input [11:0] b_in,
-    input [11:0] omega,     // Ğı×ªÒò×Ó (twiddle factor)
+    input [11:0] zeta,     // æ—‹è½¬å› å­ (twiddle factor)
     
-    // Êı¾İÊä³ö
+    // æ•°æ®è¾“å‡º
     output reg [11:0] a_out,
     output reg [11:0] b_out,
     output reg valid_out
@@ -19,18 +19,18 @@ module Butterfly_Unit (
 
     parameter P = 13'd3329;
     
-    // ²Ù×÷ÀàĞÍ¶¨Òå
-    localparam OP_NTT  = 2'b00;  // ÕıÏòNTT
-    localparam OP_INTT = 2'b01;  // ÄæÏòNTT
-    localparam OP_PWM  = 2'b10;  // µã³Ë (Pointwise Multiplication)
+    // æ“ä½œç±»å‹å®šä¹‰
+    localparam OP_NTT  = 2'b00;  // æ­£å‘NTT
+    localparam OP_INTT = 2'b01;  // é€†å‘NTT
+    localparam OP_PWM  = 2'b10;  // ç‚¹ä¹˜ (Pointwise Multiplication)
     
     // ==========================================
-    // Stage 0: ÊäÈë¼Ó¼õ·¨ - Ê¹ÓÃ Mod_Add ºÍ Mod_Sub
+    // Stage 0: è¾“å…¥åŠ å‡æ³• - ä½¿ç”¨ Mod_Add å’Œ Mod_Sub
     // ==========================================
     
     wire [11:0] add0, sub0;
     
-    // ÊµÀı»¯Ä£¼Ó·¨
+    // å®ä¾‹åŒ–æ¨¡åŠ æ³•
     Mod_Add mod_add_0 (
         .clk(clk),
         .reset(reset),
@@ -39,7 +39,7 @@ module Butterfly_Unit (
         .result(add0)
     );
     
-    // ÊµÀı»¯Ä£¼õ·¨
+    // å®ä¾‹åŒ–æ¨¡å‡æ³•
     Mod_Sub mod_sub_0 (
         .clk(clk),
         .reset(reset),
@@ -49,11 +49,11 @@ module Butterfly_Unit (
     );
     
     // ==========================================
-    // Stage 1: ¼Ä´æÊäÈë£¨Ä£¼Ó¼õÒÑ¾­ÓĞ1ÖÜÆÚÑÓ³Ù£©
+    // Stage 1: å¯„å­˜è¾“å…¥ï¼ˆæ¨¡åŠ å‡å·²ç»æœ‰1å‘¨æœŸå»¶è¿Ÿï¼‰
     // ==========================================
     
     reg [11:0] a_r1, b_r1;
-    reg [11:0] omega_r1;
+    reg [11:0] zeta_r1;
     reg [1:0] op_r1;
     reg valid_r1;
     
@@ -61,29 +61,29 @@ module Butterfly_Unit (
         if (reset) begin
             a_r1 <= 12'd0;
             b_r1 <= 12'd0;
-            omega_r1 <= 12'd0;
+            zeta_r1 <= 12'd0;
             op_r1 <= 2'b00;
             valid_r1 <= 1'b0;
         end else begin
             a_r1 <= a_in;
             b_r1 <= b_in;
-            omega_r1 <= omega;
+            zeta_r1 <= zeta;
             op_r1 <= operation;
             valid_r1 <= valid_in;
         end
     end
     
     // ==========================================
-    // Stage 2-5: Ä£³Ë·¨£¨4¸öÖÜÆÚ£©
+    // Stage 2-5: æ¨¡ä¹˜æ³•ï¼ˆ4ä¸ªå‘¨æœŸï¼‰
     // ==========================================
     
-    // ¸ù¾İ²Ù×÷ÀàĞÍÑ¡Ôñ³Ë·¨ÊäÈë
+    // æ ¹æ®æ“ä½œç±»å‹é€‰æ‹©ä¹˜æ³•è¾“å…¥
     wire [11:0] mul_a, mul_b;
     
-    assign mul_a = omega_r1;
-    assign mul_b = (op_r1 == OP_NTT) ? b_r1 : sub0;  // NTT: omega*b, INTT: omega*(a-b)
+    assign mul_a = zeta_r1;
+    assign mul_b = (op_r1 == OP_NTT) ? b_r1 : sub0;  // NTT: zeta*b, INTT: zeta*(a-b)
     
-    // Ä£³Ë·¨ÊµÀı
+    // æ¨¡ä¹˜æ³•å®ä¾‹
     wire [11:0] mul_result;
     
     Mod_Mul multiplier (
@@ -91,14 +91,14 @@ module Butterfly_Unit (
         .reset(reset),
         .a(mul_a),
         .b(mul_b),
-        .result(mul_result)  // 4ÖÜÆÚºóÊä³ö
+        .result(mul_result)  // 4å‘¨æœŸåè¾“å‡º
     );
     
     // ==========================================
-    // Stage 2-5: ÑÓ³ÙÆ¥Åä£¨4¸öÖÜÆÚ£©
+    // Stage 2-5: å»¶è¿ŸåŒ¹é…ï¼ˆ4ä¸ªå‘¨æœŸï¼‰
     // ==========================================
     
-    // add0 ºÍ a_r1 ĞèÒªÑÓ³Ù4¸öÖÜÆÚÒÔÆ¥Åä³Ë·¨Æ÷
+    // add0 å’Œ a_r1 éœ€è¦å»¶è¿Ÿ4ä¸ªå‘¨æœŸä»¥åŒ¹é…ä¹˜æ³•å™¨
     reg [11:0] add0_d1, add0_d2, add0_d3, add0_d4;
     reg [11:0] a_d1, a_d2, a_d3, a_d4;
     reg [1:0] op_d1, op_d2, op_d3, op_d4;
@@ -111,25 +111,25 @@ module Butterfly_Unit (
             op_d1 <= 2'b00; op_d2 <= 2'b00; op_d3 <= 2'b00; op_d4 <= 2'b00;
             valid_d1 <= 1'b0; valid_d2 <= 1'b0; valid_d3 <= 1'b0; valid_d4 <= 1'b0;
         end else begin
-            // µÚ1¼¶ÑÓ³Ù
+            // ç¬¬1çº§å»¶è¿Ÿ
             add0_d1 <= add0;
             a_d1 <= a_r1;
             op_d1 <= op_r1;
             valid_d1 <= valid_r1;
             
-            // µÚ2¼¶ÑÓ³Ù
+            // ç¬¬2çº§å»¶è¿Ÿ
             add0_d2 <= add0_d1;
             a_d2 <= a_d1;
             op_d2 <= op_d1;
             valid_d2 <= valid_d1;
             
-            // µÚ3¼¶ÑÓ³Ù
+            // ç¬¬3çº§å»¶è¿Ÿ
             add0_d3 <= add0_d2;
             a_d3 <= a_d2;
             op_d3 <= op_d2;
             valid_d3 <= valid_d2;
             
-            // µÚ4¼¶ÑÓ³Ù
+            // ç¬¬4çº§å»¶è¿Ÿ
             add0_d4 <= add0_d3;
             a_d4 <= a_d3;
             op_d4 <= op_d3;
@@ -138,12 +138,12 @@ module Butterfly_Unit (
     end
     
     // ==========================================
-    // Stage 6: ×îÖÕ¼ÆËã - Ê¹ÓÃ Mod_Add ºÍ Mod_Sub
+    // Stage 6: æœ€ç»ˆè®¡ç®— - ä½¿ç”¨ Mod_Add å’Œ Mod_Sub
     // ==========================================
     
     wire [11:0] final_add, final_sub;
     
-    // ÊµÀı»¯Ä£¼Ó·¨£ºa + mul_result
+    // å®ä¾‹åŒ–æ¨¡åŠ æ³•ï¼ša + mul_result
     Mod_Add mod_add_final (
         .clk(clk),
         .reset(reset),
@@ -152,7 +152,7 @@ module Butterfly_Unit (
         .result(final_add)
     );
     
-    // ÊµÀı»¯Ä£¼õ·¨£ºa - mul_result
+    // å®ä¾‹åŒ–æ¨¡å‡æ³•ï¼ša - mul_result
     Mod_Sub mod_sub_final (
         .clk(clk),
         .reset(reset),
@@ -162,10 +162,10 @@ module Butterfly_Unit (
     );
     
     // ==========================================
-    // Stage 7: Êä³ö£¨Ä£¼Ó¼õÓÖ¶àÁË1ÖÜÆÚÑÓ³Ù£©
+    // Stage 7: è¾“å‡ºï¼ˆæ¨¡åŠ å‡åˆå¤šäº†1å‘¨æœŸå»¶è¿Ÿï¼‰
     // ==========================================
     
-    // ĞèÒªÔÙÑÓ³Ù1¸öÖÜÆÚÀ´Æ¥Åä×îÖÕµÄÄ£¼Ó¼õ
+    // éœ€è¦å†å»¶è¿Ÿ1ä¸ªå‘¨æœŸæ¥åŒ¹é…æœ€ç»ˆçš„æ¨¡åŠ å‡
     reg [11:0] add0_d5;
     reg [1:0] op_d5;
     reg valid_d5;
@@ -182,7 +182,7 @@ module Butterfly_Unit (
         end
     end
     
-    // Êä³öÂß¼­
+    // è¾“å‡ºé€»è¾‘
     always @(posedge clk) begin
         if (reset) begin
             a_out <= 12'd0;
@@ -194,20 +194,20 @@ module Butterfly_Unit (
             if (valid_d5) begin
                 case (op_d5)
                     OP_NTT: begin
-                        // NTTµûĞÎ: a' = a + omega*b, b' = a - omega*b
+                        // NTTè¶å½¢: a' = a + zeta*b, b' = a - zeta*b
                         a_out <= final_add;
                         b_out <= final_sub;
                     end
                     
                     OP_INTT: begin
-                        // INTTµûĞÎ: a' = a + b, b' = omega*(a-b)
-                        // ×¢Òâ£ºÍâ²¿ĞèÒªÔÚ×îºóÍ³Ò»³ıÒÔn
+                        // INTTè¶å½¢: a' = a + b, b' = zeta*(a-b)
+                        // æ³¨æ„ï¼šå¤–éƒ¨éœ€è¦åœ¨æœ€åç»Ÿä¸€é™¤ä»¥n
                         a_out <= add0_d5;
-                        b_out <= mul_result;  // mul_result ÒÑ¾­ÑÓ³Ù1ÖÜÆÚ
+                        b_out <= mul_result;  // mul_result å·²ç»å»¶è¿Ÿ1å‘¨æœŸ
                     end
                     
                     OP_PWM: begin
-                        // µã³Ë£ºÓëNTTÏàÍ¬
+                        // ç‚¹ä¹˜ï¼šä¸NTTç›¸åŒ
                         a_out <= final_add;
                         b_out <= final_sub;
                     end
