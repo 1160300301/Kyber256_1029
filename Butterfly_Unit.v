@@ -3,7 +3,7 @@ module Butterfly_Unit (
     input reset,
     
     // 控制信号
-    input [1:0] operation,  // 00: NTT, 01: INTT, 10: PWM
+    input [1:0] operation,  // 00: NTT, 01: INTT
     input valid_in,
     
     // 数据输入
@@ -22,7 +22,7 @@ module Butterfly_Unit (
     // 操作类型定义
     localparam OP_NTT  = 2'b00;  // 正向NTT
     localparam OP_INTT = 2'b01;  // 逆向NTT
-    localparam OP_PWM  = 2'b10;  // 点乘 (Pointwise Multiplication)
+    
     
     // ==========================================
     // Stage 0: 输入加减法 - 使用 Mod_Add 和 Mod_Sub
@@ -206,11 +206,7 @@ module Butterfly_Unit (
                         b_out <= mul_result;  // mul_result 已经延迟1周期
                     end
                     
-                    OP_PWM: begin
-                        // 点乘：与NTT相同
-                        a_out <= final_add;
-                        b_out <= final_sub;
-                    end
+                    
                     
                     default: begin
                         a_out <= 12'd0;
